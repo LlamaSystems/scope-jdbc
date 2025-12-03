@@ -1,4 +1,4 @@
-![Scope JDBC](/assets/scope-jdbc-banner.png)
+![Scope JDBC](/assets/scope-jdbc-banner-long.png)
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE.txt)
 [![Issues](https://img.shields.io/github/issues/LlamaSystems/connection-scope)](https://github.com/LlamaSystems/connection-scope/issues)
