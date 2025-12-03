@@ -1,7 +1,6 @@
 package io.github.llamasystems.connectionscope;
 
 import io.github.llamasystems.connectionscope.exception.ConnectionScopeException;
-import org.intellij.lang.annotations.Language;
 
 import java.sql.Connection;
 
@@ -23,7 +22,7 @@ public interface JdbcClient {
     /// @param <T>    the target type
     /// @return an immutable [Result] containing mapped rows
     /// @throws ConnectionScopeException if query execution fails
-    <T> Result<T> query(@Language("SQL") String sql, RowMapper<T> mapper, Object... params);
+    <T> Result<T> query(String sql, RowMapper<T> mapper, Object... params);
 
     /// Executes an INSERT, UPDATE, or DELETE statement.
     ///
@@ -31,7 +30,7 @@ public interface JdbcClient {
     /// @param params positional parameters (may be empty)
     /// @return a [Result] containing the number of affected rows
     /// @throws ConnectionScopeException if execution fails
-    Result<Integer> update(@Language("SQL") String sql, Object... params);
+    Result<Integer> update(String sql, Object... params);
 
     /// Executes an INSERT statement that may generate keys and returns the first generated key
     /// if available; otherwise returns the number of affected rows.
@@ -40,5 +39,5 @@ public interface JdbcClient {
     /// @param params positional parameters
     /// @return a [Result] containing the generated key (if any) or affected row count
     /// @throws ConnectionScopeException if execution fails
-    Result<Integer> updateReturningKey(@Language("SQL") String sql, Object... params);
+    Result<Integer> updateReturningKey(String sql, Object... params);
 }

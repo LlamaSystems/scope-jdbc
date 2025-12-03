@@ -6,7 +6,7 @@
 
     <groupId>io.github.llamasystems</groupId>
     <artifactId>connection-scope</artifactId>
-    <version>0.2.0</version>
+    <version>0.3.0</version>
     <packaging>jar</packaging>
     <name>Connection Scope</name>
     <description>Java library for executing multiple JDBC operations atomically within a single connection scope with
@@ -49,12 +49,6 @@
             <groupId>com.google.errorprone</groupId>
             <artifactId>error_prone_annotations</artifactId>
             <version>2.45.0</version>
-            <scope>compileOnly</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.intellij</groupId>
-            <artifactId>annotations</artifactId>
-            <version>12.0</version>
             <scope>compileOnly</scope>
         </dependency>
     </dependencies>
