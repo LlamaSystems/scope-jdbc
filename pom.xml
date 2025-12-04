@@ -6,7 +6,7 @@
 
     <groupId>io.github.llamasystems</groupId>
     <artifactId>scope-jdbc</artifactId>
-    <version>0.3.0</version>
+    <version>0.2.0</version>
     <packaging>jar</packaging>
     <name>ScopeJDBC</name>
     <description>Java library for executing multiple JDBC operations atomically within a single connection scope with
