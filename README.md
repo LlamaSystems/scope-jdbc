@@ -6,10 +6,10 @@
 [![Contributions Welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Known Vulnerabilities](https://snyk.io/test/github/LlamaSystems/connection-scope/badge.svg)](https://snyk.io/test/github/LlamaSystems/connection-scope)
 
-ScopeJDBC - High-performance, explicit JDBC connection & transaction management. The fastest and safest way to execute
-multiple queries on a single DB connection — delivering maximum performance from short-lived request flows to
-long-running transactions, with full low-level JDBC power, explicit commit/rollback control, and zero lifecycle-leak
-risk.
+**ScopeJDBC — High-performance, explicit JDBC connection & transaction management.**<br>
+The fastest and safest way to execute multiple queries on a single DB connection — maximizing throughput in everything
+from short-lived request pipelines to long-running transactional flows. Full low-level JDBC control with explicit
+commit/rollback and zero risk of lifecycle leaks.
 
 **Zero reflection. Zero proxies. Zero annotations. Zero dependency.**
 
@@ -17,24 +17,23 @@ risk.
 
 ## Why ScopeJDBC?
 
-JDBC is powerful but easy to misuse:
+JDBC is powerful — but misused by default:
 
-- Hidden auto-commits
-- Multiple pooled connections inside one workflow
-- Hard-to-reproduce bugs across repository boundaries
-- Transaction rules tied to frameworks (Spring)
-- Magic behaviors with proxies & reflection
+- Silent auto-commits
+- Multiple pooled connections in one logical flow
+- Cross-repository transaction hazards
+- Framework-imposed transaction models
+- Unpredictable proxy + reflection behavior
 
-**ScopeJDBC eliminates all of these problems** with a **single, thread-confined connection** that you fully
-control:
+ScopeJDBC fixes all of it with **one explicit, thread-confined Connection** you fully control:
 
 - Exactly one connection per unit of work
-- Explicit commit/rollback
-- Zero AOP, zero proxy overhead
-- No runtime dependency — 100% pure Java
-- Guaranteed thread confinement
-- Works anywhere: Java SE, Spring Boot, microservices, CLI, servlet container
-- Predictable leak-free lifecycle
+- Explicit commit / rollback — never implicit
+- Zero reflection, zero proxies, zero annotations
+- No dependencies — pure, portable Java
+- Guaranteed thread confinement by design
+- Works anywhere: SE, Boot, microservices, CLI, servlet
+- Deterministic, leak-free lifecycle
 
 **You always know:**
 
@@ -88,8 +87,7 @@ void main() {
         scope.execute(c ->
                 c.query("SELECT * FROM users WHERE is_active = ?", new UserMapper(), true)
         ).getAsList().forEach(System.out::println);
-    }
-// Single connection, closed once — always predictable
+    } // Single connection, closed once — always predictable
 }
 ```
 
@@ -115,7 +113,9 @@ void main() {
         scope.commit();   // first part saved
 
         scope.execute(c -> c.update("DELETE FROM notifications WHERE message = ?", "Hi"));
-        scope.rollback(); // rollback only second part
+        if (condition) { // custom condition
+            scope.rollback(); // rollback only second part
+        }
     }
 }
 ```
@@ -130,7 +130,7 @@ void main() {
 }
 ```
 
-Prevents accidental writes (DB-enforced when supported).
+You can solve: one connection for multiple queries in spring with `@Transactional` annotation, but...
 
 ### Spring Transactional vs ScopeJDBC
 
