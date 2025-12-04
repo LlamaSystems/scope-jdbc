@@ -25,12 +25,11 @@ abstract sealed class AbstractConnectionScope implements ConnectionScope
         if (ACTIVE_SCOPE.get() != null) {
             throw new ConnectionScopeException("Nested ConnectionScope on the same thread is not allowed");
         }
-        ACTIVE_SCOPE.set(this);
-
         try {
             this.connection = Objects.requireNonNull(dataSource, "dataSource").getConnection();
             this.ownerThread = Thread.currentThread();
             this.client = new JdbcClientImpl(connection);
+            ACTIVE_SCOPE.set(this);
         } catch (SQLException e) {
             ACTIVE_SCOPE.remove();
             throw new ConnectionScopeException("Failed to open connection", e);
