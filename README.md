@@ -80,13 +80,12 @@ This causes:
 ```java
 void main() {
     try (ConnectionScope scope = ConnectionScope.open(dataSource)) {
-        scope.execute(c ->
-                c.update("DELETE FROM users WHERE username = ?", "john.doe")
-        );
+        scope.execute(c -> c.update("DELETE FROM users WHERE username = ?", "john.doe"));
+        // delete....
 
-        scope.execute(c ->
-                c.query("SELECT * FROM users WHERE is_active = ?", new UserMapper(), true)
-        ).getAsList().forEach(System.out::println);
+        scope.execute(c -> c.query("SELECT * FROM users WHERE is_active = ?", new UserMapper(), true))
+                .getAsList()
+                .forEach(System.out::println);
     } // Single connection, closed once — always predictable
 }
 ```
@@ -96,9 +95,7 @@ void main() {
 ```java
 void main() {
     try (ConnectionScope scope = ConnectionScope.openTransactional(dataSource)) {
-        scope.execute(c ->
-                c.update("UPDATE users SET active = false WHERE username = ?", "john")
-        );
+        scope.execute(c -> c.update("UPDATE users SET active = false WHERE username = ?", "john"));
         scope.commit(); // explicit, required
     } // forget commit() → auto-rollback for safety
 } 
