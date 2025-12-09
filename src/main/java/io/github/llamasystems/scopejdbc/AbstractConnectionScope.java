@@ -22,12 +22,13 @@ abstract sealed class AbstractConnectionScope implements ConnectionScope
     protected volatile State state = State.ACTIVE;
 
     protected AbstractConnectionScope(DataSource dataSource) {
+        Objects.requireNonNull(dataSource, "dataSource");
         if (ACTIVE_SCOPE.get() != null) {
             throw new ConnectionScopeException("Nested ConnectionScope on the same thread is not allowed");
         }
+        this.ownerThread = Thread.currentThread();
         try {
-            this.connection = Objects.requireNonNull(dataSource, "dataSource").getConnection();
-            this.ownerThread = Thread.currentThread();
+            this.connection = dataSource.getConnection();
             this.client = new JdbcClientImpl(connection);
             ACTIVE_SCOPE.set(this);
         } catch (SQLException e) {
@@ -82,10 +83,7 @@ abstract sealed class AbstractConnectionScope implements ConnectionScope
         try {
             connection.close();
         } catch (SQLException ex) {
-            throw new ConnectionScopeException(
-                    "Failed to close JDBC connection",
-                    ex
-            );
+            throw new ConnectionScopeException("Failed to close JDBC connection", ex);
         } finally {
             markTerminated();
         }
