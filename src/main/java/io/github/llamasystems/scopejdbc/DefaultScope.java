@@ -17,7 +17,7 @@ final class DefaultScope extends AbstractConnectionScope {
         try {
             connection.setAutoCommit(true);
         } catch (SQLException e) {
-            restoreAndClose(false);
+            closeConnection();
             throw new ConnectionScopeException("Failed to set auto-commit for non-transactional scope", e);
         }
     }
@@ -43,7 +43,7 @@ final class DefaultScope extends AbstractConnectionScope {
     public void close() {
         if (state != State.TERMINATED) {
             markTerminating();
-            restoreAndClose(false);
+            closeConnection();
         }
     }
 }

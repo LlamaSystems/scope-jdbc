@@ -6,13 +6,18 @@
 
     <groupId>io.github.llamasystems</groupId>
     <artifactId>scope-jdbc</artifactId>
-    <version>0.2.0</version>
+    <version>0.3.0</version>
     <packaging>jar</packaging>
     <name>ScopeJDBC</name>
     <description>Java library for executing multiple JDBC operations atomically within a single connection scope with
         automatic commit/rollback support.
     </description>
     <url>https://github.com/LlamaSystems/scope-jdbc</url>
+
+    <organization>
+        <name>LlamaSystems</name>
+        <url>https://github.com/LlamaSystems</url>
+    </organization>
 
     <licenses>
         <license>
@@ -49,7 +54,7 @@
             <groupId>com.google.errorprone</groupId>
             <artifactId>error_prone_annotations</artifactId>
             <version>2.45.0</version>
-            <scope>compileOnly</scope>
+            <optional>true</optional>
         </dependency>
     </dependencies>
 

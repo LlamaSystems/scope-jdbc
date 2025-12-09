@@ -21,7 +21,8 @@ final class TransactionalScope extends AbstractConnectionScope {
             connection.setReadOnly(readOnly);
             connection.setAutoCommit(false);
         } catch (SQLException e) {
-            restoreAndClose(true);
+            restoreAutoCommit();
+            closeConnection();
             throw new ConnectionScopeException("Failed to initialize transactional scope", e);
         }
     }
@@ -73,11 +74,13 @@ final class TransactionalScope extends AbstractConnectionScope {
             if (!readOnly) {
                 try {
                     connection.rollback();
-                } catch (SQLException ignored) {
+                } catch (SQLException _) {
+                    // Ignored on close to avoid masking prior exceptions
                 }
             }
+            restoreAutoCommit();
         } finally {
-            restoreAndClose(true);
+            closeConnection();
         }
     }
 

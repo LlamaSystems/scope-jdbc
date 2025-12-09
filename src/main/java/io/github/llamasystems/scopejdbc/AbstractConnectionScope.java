@@ -67,24 +67,27 @@ abstract sealed class AbstractConnectionScope implements ConnectionScope
         ACTIVE_SCOPE.remove();
     }
 
-    protected void restoreAndClose(boolean resetAutoCommit) {
-        if (state == State.TERMINATED) return;
-
+    protected void restoreAutoCommit() {
         try {
-            if (resetAutoCommit) {
-                try {
-                    connection.setAutoCommit(true);
-                } catch (SQLException ignored) {
-                }
-            }
+            connection.setAutoCommit(true);
+        } catch (SQLException ex) {
+            throw new ConnectionScopeException(
+                    "Failed to restore connection to auto-commit mode",
+                    ex
+            );
+        }
+    }
+
+    protected void closeConnection() {
+        try {
+            connection.close();
+        } catch (SQLException ex) {
+            throw new ConnectionScopeException(
+                    "Failed to close JDBC connection",
+                    ex
+            );
         } finally {
-            try {
-                connection.close();
-            } catch (SQLException e) {
-                throw new ConnectionScopeException("Failed to close connection", e);
-            } finally {
-                markTerminated();
-            }
+            markTerminated();
         }
     }
 }
