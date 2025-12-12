@@ -6,7 +6,8 @@
 [![Contributions Welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Known Vulnerabilities](https://snyk.io/test/github/LlamaSystems/connection-scope/badge.svg)](https://snyk.io/test/github/LlamaSystems/connection-scope)
 
-**ScopeJDBC — Explicit, High-Performance JDBC Session & Transaction Control**<br>
+**ScopeJDBC — Explicit, High-Performance JDBC Session & Transaction Control**
+
 The fastest and safest way to execute multiple queries on a single DB connection, maximizing throughput for everything
 from short-lived request pipelines to long-running transactional flows. ScopeJDBC provides deterministic, low-overhead
 JDBC connection and transaction management with **zero reflection, zero proxies, zero annotations, and zero
@@ -18,6 +19,7 @@ It provides full observability, full explicitness, and low-level control-ideal f
 performance, determinism, and clarity matter more than abstraction layers.
 It does not replace ORMs, mappers, or SQL builders.
 ScopeJDBC is the foundation for building predictable, high-performance database workflows.
+
 ---
 
 ## Features
