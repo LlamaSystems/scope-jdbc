@@ -1,7 +1,7 @@
 package io.github.llamasystems.scopejdbc;
 
+import com.google.errorprone.annotations.DoNotCall;
 import com.google.errorprone.annotations.MustBeClosed;
-import io.github.llamasystems.scopejdbc.annotations.ConnectionScopeManaged;
 import io.github.llamasystems.scopejdbc.exception.ConnectionScopeException;
 
 import javax.sql.DataSource;
@@ -121,7 +121,7 @@ public sealed interface ConnectionScope extends AutoCloseable
     /// even when no changes were made).
     ///
     /// @throws ConnectionScopeException if this is not a transactional scope, the scope is not active,
-    ///                                                                   the calling thread is wrong, or the commit fails
+    ///                                  the calling thread is wrong, or the commit fails
     void commit();
 
     /// Rolls back the current transaction branch.
@@ -153,7 +153,7 @@ public sealed interface ConnectionScope extends AutoCloseable
     /// This method is intended only for advanced usage.
     ///
     /// @return the [Connection] bound to this scope
-    @ConnectionScopeManaged
+    @DoNotCall("Unsafe: advanced usage only, may throw ConnectionScopeException")
     Connection getConnection();
 
     /// Closes the scope and returns the connection to the pool.
