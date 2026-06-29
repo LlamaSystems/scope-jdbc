@@ -7,14 +7,8 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Objects;
 
-/// # AbstractConnectionScope
-///
-/// @author Aliabbos Ashurov
-/// @since 1.0.0
 abstract sealed class AbstractConnectionScope implements ConnectionScope
         permits DefaultScope, TransactionalScope {
-
-    protected static final ThreadLocal<ConnectionScope> ACTIVE_SCOPE = new ThreadLocal<>();
 
     protected final Connection connection;
     protected final JdbcClient client;
@@ -23,69 +17,90 @@ abstract sealed class AbstractConnectionScope implements ConnectionScope
 
     protected AbstractConnectionScope(DataSource dataSource) {
         Objects.requireNonNull(dataSource, "dataSource");
-        if (ACTIVE_SCOPE.get() != null) {
-            throw new ConnectionScopeException("Nested ConnectionScope on the same thread is not allowed");
-        }
         this.ownerThread = Thread.currentThread();
+
         try {
             this.connection = dataSource.getConnection();
             this.client = new JdbcClientImpl(connection);
-            ACTIVE_SCOPE.set(this);
         } catch (SQLException e) {
-            ACTIVE_SCOPE.remove();
-            throw new ConnectionScopeException("Failed to open connection", e);
+            throw new ConnectionScopeException("Failed to open JDBC connection", e);
         }
     }
 
     @Override
-    public State getState() {
+    public final State getState() {
         return state;
     }
 
     @Override
-    public Connection getConnection() {
+    public final Connection getConnection() {
         return connection;
     }
 
-    protected void checkThreadConfined() {
+    protected final void checkThreadConfined() {
         if (Thread.currentThread() != ownerThread) {
-            throw new ConnectionScopeException("ConnectionScope must not be used from a different thread");
+            throw new ConnectionScopeException("ConnectionScope must only be used from its owner thread");
         }
     }
 
-    protected void checkActive() {
+    protected final void checkActive() {
         if (state != State.ACTIVE) {
             throw new ConnectionScopeException("ConnectionScope is no longer active");
         }
     }
 
-    protected void markTerminating() {
+    protected final void markTerminating() {
         state = State.TERMINATING;
     }
 
-    protected void markTerminated() {
+    protected final void markTerminated() {
         state = State.TERMINATED;
-        ACTIVE_SCOPE.remove();
     }
 
-    protected void restoreAutoCommit() {
+    protected final ConnectionScopeException closeFailure(
+            String message,
+            Throwable primary,
+            Throwable secondary,
+            Throwable tertiary
+    ) {
+        ConnectionScopeException exception = new ConnectionScopeException(message, primary);
+        if (secondary != null) {
+            exception.addSuppressed(secondary);
+        }
+        if (tertiary != null) {
+            exception.addSuppressed(tertiary);
+        }
+        return exception;
+    }
+
+    protected final SQLException restoreConnectionState() {
+        SQLException failure = null;
+
         try {
             connection.setAutoCommit(true);
-        } catch (SQLException ex) {
-            throw new ConnectionScopeException(
-                    "Failed to restore connection to auto-commit mode",
-                    ex
-            );
+        } catch (SQLException e) {
+            failure = e;
         }
+
+        try {
+            connection.setReadOnly(false);
+        } catch (SQLException e) {
+            if (failure == null) {
+                failure = e;
+            } else {
+                failure.addSuppressed(e);
+            }
+        }
+
+        return failure;
     }
 
-    protected void closeConnection() {
+    protected final SQLException closePhysicalConnection() {
         try {
             connection.close();
-        } catch (SQLException ex) {
-            throw new ConnectionScopeException("Failed to close JDBC connection", ex);
-        } finally {
-            markTerminated();
+            return null;
+        } catch (SQLException e) {
+            return e;
         }
     }
 }

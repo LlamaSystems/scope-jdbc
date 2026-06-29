@@ -7,11 +7,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-/// # JdbcClientImpl
-///
-/// @author Aliabbos Ashurov
-/// @since 1.0.0
-@SuppressWarnings("ClassCanBeRecord")
 final class JdbcClientImpl implements JdbcClient {
 
     private final Connection connection;
@@ -21,63 +16,105 @@ final class JdbcClientImpl implements JdbcClient {
     }
 
     @Override
-    public <T> Result<T> query(String sql, RowMapper<T> mapper, Object... params) {
+    public <T> List<T> query(String sql, RowMapper<T> mapper, Object... params) {
         Objects.requireNonNull(sql, "sql");
         Objects.requireNonNull(mapper, "mapper");
-        try (PreparedStatement ps = prepareStatement(connection, sql, false, params);
-             ResultSet rs = ps.executeQuery()) {
+
+        try (PreparedStatement statement = prepareStatement(connection, sql, false, params);
+             ResultSet resultSet = statement.executeQuery()) {
 
             List<T> rows = new ArrayList<>();
-            while (rs.next()) {
-                rows.add(mapper.map(rs));
+            while (resultSet.next()) {
+                rows.add(mapper.map(resultSet));
             }
-            return new QueryResult<>(rows);
+            return rows;
         } catch (SQLException e) {
-            throw new ConnectionScopeException("Query failed", e);
+            throw new ConnectionScopeException("Failed to execute query", e);
         }
     }
 
     @Override
-    public Result<Integer> update(String sql, Object... params) {
+    public <T> T queryForObject(String sql, RowMapper<T> mapper, Object... params) {
         Objects.requireNonNull(sql, "sql");
-        try (PreparedStatement ps = prepareStatement(connection, sql, false, params)) {
-            int affected = ps.executeUpdate();
-            return new UpdateResult(affected);
+        Objects.requireNonNull(mapper, "mapper");
+
+        try (PreparedStatement statement = prepareStatement(connection, sql, false, params);
+             ResultSet resultSet = statement.executeQuery()) {
+
+            if (!resultSet.next()) {
+                throw new ConnectionScopeException("Expected exactly one row but query returned no rows");
+            }
+
+            T value = mapper.map(resultSet);
+
+            if (resultSet.next()) {
+                throw new ConnectionScopeException("Expected exactly one row but query returned more than one row");
+            }
+
+            return value;
         } catch (SQLException e) {
-            throw new ConnectionScopeException("Update failed", e);
+            throw new ConnectionScopeException("Failed to execute single-result query", e);
         }
     }
 
     @Override
-    public Result<Integer> updateReturningKey(String sql, Object... params) {
+    public boolean exists(String sql, Object... params) {
         Objects.requireNonNull(sql, "sql");
-        try (PreparedStatement ps = prepareStatement(connection, sql, true, params)) {
-            int affected = ps.executeUpdate();
 
-            try (ResultSet keys = ps.getGeneratedKeys()) {
-                if (keys.next()) {
-                    return new UpdateResult(keys.getInt(1));
+        try (PreparedStatement statement = prepareStatement(connection, sql, false, params);
+             ResultSet resultSet = statement.executeQuery()) {
+            return resultSet.next();
+        } catch (SQLException e) {
+            throw new ConnectionScopeException("Failed to execute existence query", e);
+        }
+    }
+
+    @Override
+    public int update(String sql, Object... params) {
+        Objects.requireNonNull(sql, "sql");
+
+        try (PreparedStatement statement = prepareStatement(connection, sql, false, params)) {
+            return statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new ConnectionScopeException("Failed to execute update", e);
+        }
+    }
+
+    @Override
+    public long updateReturningKey(String sql, Object... params) {
+        Objects.requireNonNull(sql, "sql");
+
+        try (PreparedStatement statement = prepareStatement(connection, sql, true, params)) {
+            int affected = statement.executeUpdate();
+
+            try (ResultSet generatedKeys = statement.getGeneratedKeys()) {
+                if (generatedKeys.next()) {
+                    return generatedKeys.getLong(1);
                 }
             }
 
-            return new UpdateResult(affected);
+            return affected;
         } catch (SQLException e) {
-            throw new ConnectionScopeException("Update (returning key) failed", e);
+            throw new ConnectionScopeException("Failed to execute update returning key", e);
         }
     }
 
-    private static PreparedStatement prepareStatement(Connection conn, String sql, boolean returnKeys, Object... params)
-            throws SQLException {
-
-        final PreparedStatement ps = returnKeys
-                ? conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)
-                : conn.prepareStatement(sql);
+    private static PreparedStatement prepareStatement(
+            Connection connection,
+            String sql,
+            boolean returnGeneratedKeys,
+            Object... params
+    ) throws SQLException {
+        PreparedStatement statement = returnGeneratedKeys
+                ? connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)
+                : connection.prepareStatement(sql);
 
         if (params != null) {
             for (int i = 0; i < params.length; i++) {
-                ps.setObject(i + 1, params[i]);
+                statement.setObject(i + 1, params[i]);
             }
         }
-        return ps;
+
+        return statement;
     }
 }
