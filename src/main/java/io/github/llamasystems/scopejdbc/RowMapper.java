@@ -1,23 +1,27 @@
+
 package io.github.llamasystems.scopejdbc;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-/// # RowMapper
-/// Functional interface to map a [ResultSet] row into a Java object.
-///
-/// Typically used by [JdbcClient#query(String, RowMapper, Object...)] to convert query results
-/// into domain objects.
-///
-/// @author Aliabbos Ashurov
-/// @since 1.0.0
+/**
+ * Maps the current row of a {@link ResultSet} to a target value.
+ *
+ * <p>The provided {@link ResultSet} is positioned on a valid row and must not be advanced
+ * by the mapper. Implementations should read only the columns required to construct the
+ * mapped value.
+ *
+ * @param <T> mapped result type
+ */
 @FunctionalInterface
 public interface RowMapper<T> {
 
-    /// Maps the current row of the result set.
-    ///
-    /// @param rs the result set, positioned on the current row
-    /// @return the mapped object, may be `null`
-    /// @throws SQLException if a database access error occurs
-    T map(ResultSet rs) throws SQLException;
+    /**
+     * Maps the current row of the given {@link ResultSet}.
+     *
+     * @param resultSet current JDBC result set row
+     * @return mapped value
+     * @throws SQLException if column access fails
+     */
+    T map(ResultSet resultSet) throws SQLException;
 }

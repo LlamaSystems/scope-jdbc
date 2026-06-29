@@ -1,17 +1,17 @@
 package io.github.llamasystems.scopejdbc;
 
-/// # Mode
-/// Represents the transaction mode for a [ConnectionScope]
-///
-/// This enum is used to indicate whether a transactional scope should be
-/// [#READ_ONLY] (no writes allowed) or [#READ_WRITE] (reads/writes allowed).
-///
-/// @author Aliabbos Ashurov
-/// @since 1.0.0
+/**
+ * Transaction mode for transactional {@link ConnectionScope} instances.
+ */
 public enum Mode {
     READ_ONLY,
     READ_WRITE;
 
+    /**
+     * Returns whether this mode represents a read-only transaction.
+     *
+     * @return {@code true} if read-only; {@code false} otherwise
+     */
     public boolean isReadOnly() {
         return this == READ_ONLY;
     }
