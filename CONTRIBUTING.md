@@ -8,6 +8,40 @@ Thank you for considering contributing to this project! There are many ways you 
 - Enhancing features
 - Improving tooling and automation
 
+## Building and verifying changes
+
+This is a plain Maven project with zero runtime dependencies. To build and verify locally:
+
+```bash
+mvn clean verify
+```
+
+This compiles the project, attaches source and Javadoc jars, and fails the build if Javadoc
+generation errors out. There is currently no automated test suite; please compile-check your
+changes and, where practical, exercise them manually against a real `DataSource` (e.g. an
+in-memory database) before opening a pull request. Contributions that add test coverage are
+especially welcome.
+
+## Design philosophy
+
+ScopeJDBC stays intentionally small and close to JDBC. When contributing, please preserve:
+
+- **No reflection, proxying, annotation processing, or other implicit/"magic" behavior.** Every
+  code path should be traceable by reading the source.
+- **Minimal dependencies.** The main artifact has none; avoid adding runtime dependencies unless
+  there is no reasonable alternative.
+- **A small, deliberate public surface.** `ConnectionScope`, `JdbcClient`, `RowMapper`, `Mode`,
+  and `ConnectionScopeException` are the entire public API. New public types or methods should be
+  proposed via an issue before a pull request, since the project treats binary/source
+  compatibility as a hard constraint.
+- **Sealed type hierarchies** for the scope implementations (`AbstractConnectionScope`,
+  `DefaultScope`, `TransactionalScope`) — keep new scope variants exhaustive and package-private
+  unless there's a strong reason to expose them.
+- **Exceptions must remain observable and precise.** Failures during rollback, connection-state
+  restoration, or close are aggregated via cause + suppressed exceptions rather than swallowed; if
+  you touch this logic, preserve that a caller can inspect every failure that occurred, not just
+  the first.
+
 ## Recommended Workflow
 
 Here’s a step-by-step guide to contributing to this project:

@@ -18,13 +18,7 @@ final class DefaultScope extends AbstractConnectionScope {
         } catch (SQLException e) {
             SQLException closeFailure = closePhysicalConnection();
             markTerminated();
-
-            ConnectionScopeException exception =
-                    new ConnectionScopeException("Failed to initialize non-transactional scope", e);
-            if (closeFailure != null) {
-                exception.addSuppressed(closeFailure);
-            }
-            throw exception;
+            throw Failures.wrap("Failed to initialize non-transactional scope", e, closeFailure);
         }
     }
 
@@ -55,18 +49,7 @@ final class DefaultScope extends AbstractConnectionScope {
     }
 
     @Override
-    public void close() {
-        if (state == State.TERMINATED) {
-            return;
-        }
-
-        markTerminating();
-
-        SQLException closeFailure = closePhysicalConnection();
-        markTerminated();
-
-        if (closeFailure != null) {
-            throw new ConnectionScopeException("Failed to close JDBC connection", closeFailure);
-        }
+    protected ConnectionScopeException performClose() {
+        return Failures.wrap("Failed to close JDBC connection", closePhysicalConnection());
     }
 }

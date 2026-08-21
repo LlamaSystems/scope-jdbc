@@ -67,15 +67,18 @@ public interface JdbcClient {
     int update(String sql, Object... params);
 
     /**
-     * Executes a statement requesting generated keys and returns the first generated key when
-     * available. If the driver does not return a generated key, the affected row count is returned.
+     * Executes an INSERT statement requesting generated keys and returns the first generated key
+     * when the driver provides one. If the driver does not return a generated key, the affected
+     * row count is returned instead.
      *
-     * <p>This method preserves the original library behavior. Callers should be aware that the
-     * returned integer may represent either a generated key or an affected row count.
+     * <p>The return value is ambiguous by design: callers cannot distinguish a generated key from
+     * an affected row count using the value alone. Use this method only against drivers and
+     * statements where generated-key support is known, or rely on {@link #update} plus a separate
+     * lookup when that ambiguity is not acceptable.
      *
      * @param sql    SQL statement to execute
      * @param params positional statement parameters
-     * @return first generated key if present; otherwise affected row count
+     * @return first generated key if the driver returned one; otherwise the affected row count
      */
     long updateReturningKey(String sql, Object... params);
 }

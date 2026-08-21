@@ -1,5 +1,22 @@
 # Security Policy
 
+## Scope
+
+ScopeJDBC is a thin layer over `java.sql`/`javax.sql`: it does not perform network I/O,
+deserialization, reflection, or dynamic code generation of its own. The library's own attack
+surface is limited to connection lifecycle and statement-parameter binding (`PreparedStatement`
+with positional `setObject` calls; ScopeJDBC never concatenates caller-supplied values into SQL
+text). Most real-world risk in applications using ScopeJDBC originates from the caller-supplied
+`DataSource`/JDBC driver, connection credentials and pooling configuration, or from SQL text
+constructed insecurely by the calling application — please direct reports about those to the
+relevant driver, pool, or application project. Reports specific to ScopeJDBC's own code
+(connection handling, transaction control, exception aggregation) are welcome here.
+
+## Supported Versions
+
+Security fixes are provided for the latest released minor version. Users are encouraged to stay
+on the most recent release available on Maven Central.
+
 ## Reporting a Vulnerability
 
 We take the security of this project seriously. If you discover a security vulnerability, please report it responsibly

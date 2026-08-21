@@ -16,9 +16,12 @@ import java.util.function.Function;
  * minimal execution API, and releases it when {@link #close()} is called. Transactional scopes
  * disable auto-commit and require explicit {@link #commit()} or {@link #rollback()} control.
  *
- * <p>Scopes are thread-confined. A scope must only be used from the thread that created it.
- * Using a scope after termination or from a different thread results in
- * {@link ConnectionScopeException}.
+ * <p>Scopes are thread-confined: a scope must only be used from the thread that created it.
+ * Calling {@link #execute}, {@link #executeVoid}, {@link #commit}, or {@link #rollback} after
+ * termination or from a different thread results in {@link ConnectionScopeException}.
+ * {@link #getConnection()} and {@link #close()} do not themselves enforce these checks; callers
+ * must still respect thread confinement and lifecycle state when using them, since violating
+ * either can leave the underlying JDBC connection in an undefined state.
  *
  * <p>Typical usage:
  *
@@ -101,15 +104,18 @@ public sealed interface ConnectionScope extends AutoCloseable permits AbstractCo
      * Executes code against the scope-bound {@link JdbcClient} and returns a value.
      *
      * <p>In transactional scopes, if the supplied block throws a {@link RuntimeException} or
-     * {@link Error}, the current uncommitted transaction state is rolled back before the
-     * exception is rethrown. The scope itself remains open unless subsequent cleanup fails.
+     * {@link Error}, ScopeJDBC immediately attempts to roll back the current uncommitted
+     * transaction state before the original exception is rethrown. The scope remains
+     * {@link State#ACTIVE} afterward regardless of whether that rollback attempt succeeds; if the
+     * rollback itself fails, the resulting {@link java.sql.SQLException} is attached to the
+     * original exception via {@link Throwable#addSuppressed}, and the original exception is what
+     * propagates.
      *
      * @param block code to execute
      * @param <T>   result type
      * @return result returned by the supplied block
      * @throws NullPointerException     if {@code block} is {@code null}
-     * @throws ConnectionScopeException if the scope is inactive, accessed from the wrong thread,
-     *                                  or rollback fails during exception handling
+     * @throws ConnectionScopeException if the scope is inactive or accessed from the wrong thread
      */
     <T> T execute(Function<JdbcClient, T> block);
 
@@ -121,14 +127,16 @@ public sealed interface ConnectionScope extends AutoCloseable permits AbstractCo
      * {@code null} from a value-producing lambda.
      *
      * <p>In transactional scopes, if the supplied block throws a {@link RuntimeException} or
-     * {@link Error}, ScopeJDBC attempts to roll back the current uncommitted transaction state
-     * before rethrowing the original failure. The scope remains open unless subsequent rollback
-     * or cleanup work fails.
+     * {@link Error}, ScopeJDBC immediately attempts to roll back the current uncommitted
+     * transaction state before the original exception is rethrown. The scope remains
+     * {@link State#ACTIVE} afterward regardless of whether that rollback attempt succeeds; if the
+     * rollback itself fails, the resulting {@link java.sql.SQLException} is attached to the
+     * original exception via {@link Throwable#addSuppressed}, and the original exception is what
+     * propagates.
      *
      * @param block code to execute against the scope-bound client
      * @throws NullPointerException     if {@code block} is {@code null}
-     * @throws ConnectionScopeException if the scope is inactive, accessed from the wrong thread,
-     *                                  or rollback fails during exception handling
+     * @throws ConnectionScopeException if the scope is inactive or accessed from the wrong thread
      */
     void executeVoid(Consumer<JdbcClient> block);
 
@@ -167,7 +175,8 @@ public sealed interface ConnectionScope extends AutoCloseable permits AbstractCo
      * <p>This method is an explicit escape hatch for advanced use cases. The returned connection
      * remains owned by the scope and must not be closed by the caller. Callers must not change
      * auto-commit, commit, rollback, read-only state, or other connection-level settings that
-     * would violate scope invariants.
+     * would violate scope invariants. This method does not check thread confinement or lifecycle
+     * state; misuse from a foreign thread or after termination is not detected.
      *
      * @return scope-owned JDBC connection
      */
@@ -178,7 +187,11 @@ public sealed interface ConnectionScope extends AutoCloseable permits AbstractCo
      *
      * <p>For transactional scopes, uncommitted work is rolled back before the connection is
      * closed. Implementations also attempt to restore the connection to auto-commit mode before
-     * returning it to the pool.
+     * returning it to the pool. Closing an already-terminated scope is a no-op; the original
+     * termination failure, if any, is not replayed on a repeated call.
+     *
+     * <p>This method does not check thread confinement; callers should still close the scope from
+     * its owning thread to avoid racing with in-flight work on the underlying connection.
      *
      * @throws ConnectionScopeException if termination fails
      */

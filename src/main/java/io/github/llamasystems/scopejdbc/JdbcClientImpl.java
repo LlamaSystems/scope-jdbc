@@ -2,7 +2,11 @@ package io.github.llamasystems.scopejdbc;
 
 import io.github.llamasystems.scopejdbc.exception.ConnectionScopeException;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -20,17 +24,13 @@ final class JdbcClientImpl implements JdbcClient {
         Objects.requireNonNull(sql, "sql");
         Objects.requireNonNull(mapper, "mapper");
 
-        try (PreparedStatement statement = prepareStatement(connection, sql, false, params);
-             ResultSet resultSet = statement.executeQuery()) {
-
+        return executeQuery(sql, params, "Failed to execute query", resultSet -> {
             List<T> rows = new ArrayList<>();
             while (resultSet.next()) {
                 rows.add(mapper.map(resultSet));
             }
             return rows;
-        } catch (SQLException e) {
-            throw new ConnectionScopeException("Failed to execute query", e);
-        }
+        });
     }
 
     @Override
@@ -38,9 +38,7 @@ final class JdbcClientImpl implements JdbcClient {
         Objects.requireNonNull(sql, "sql");
         Objects.requireNonNull(mapper, "mapper");
 
-        try (PreparedStatement statement = prepareStatement(connection, sql, false, params);
-             ResultSet resultSet = statement.executeQuery()) {
-
+        return executeQuery(sql, params, "Failed to execute single-result query", resultSet -> {
             if (!resultSet.next()) {
                 throw new ConnectionScopeException("Expected exactly one row but query returned no rows");
             }
@@ -52,21 +50,14 @@ final class JdbcClientImpl implements JdbcClient {
             }
 
             return value;
-        } catch (SQLException e) {
-            throw new ConnectionScopeException("Failed to execute single-result query", e);
-        }
+        });
     }
 
     @Override
     public boolean exists(String sql, Object... params) {
         Objects.requireNonNull(sql, "sql");
 
-        try (PreparedStatement statement = prepareStatement(connection, sql, false, params);
-             ResultSet resultSet = statement.executeQuery()) {
-            return resultSet.next();
-        } catch (SQLException e) {
-            throw new ConnectionScopeException("Failed to execute existence query", e);
-        }
+        return executeQuery(sql, params, "Failed to execute existence query", ResultSet::next);
     }
 
     @Override
@@ -99,6 +90,15 @@ final class JdbcClientImpl implements JdbcClient {
         }
     }
 
+    private <T> T executeQuery(String sql, Object[] params, String failureMessage, ResultSetHandler<T> handler) {
+        try (PreparedStatement statement = prepareStatement(connection, sql, false, params);
+             ResultSet resultSet = statement.executeQuery()) {
+            return handler.handle(resultSet);
+        } catch (SQLException e) {
+            throw new ConnectionScopeException(failureMessage, e);
+        }
+    }
+
     private static PreparedStatement prepareStatement(
             Connection connection,
             String sql,
@@ -116,5 +116,17 @@ final class JdbcClientImpl implements JdbcClient {
         }
 
         return statement;
+    }
+
+    /**
+     * Handles a positioned {@link ResultSet} produced by {@link #executeQuery}, translating any
+     * checked {@link SQLException} thrown during execution into the caller-supplied failure
+     * message.
+     *
+     * @param <T> handler result type
+     */
+    @FunctionalInterface
+    private interface ResultSetHandler<T> {
+        T handle(ResultSet resultSet) throws SQLException;
     }
 }
