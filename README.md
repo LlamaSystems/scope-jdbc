@@ -65,7 +65,7 @@ A scope tracks its own lifecycle as `ACTIVE` → `TERMINATING` → `TERMINATED`
 <dependency>
     <groupId>io.github.llamasystems</groupId>
     <artifactId>scope-jdbc</artifactId>
-    <version>2.0.0</version>
+    <version>2.1.0</version>
 </dependency>
 ```
 
@@ -73,7 +73,7 @@ A scope tracks its own lifecycle as `ACTIVE` → `TERMINATING` → `TERMINATED`
 
 ```kotlin
 dependencies {
-    implementation("io.github.llamasystems:scope-jdbc:2.0.0")
+    implementation("io.github.llamasystems:scope-jdbc:2.1.0")
 }
 ```
 
