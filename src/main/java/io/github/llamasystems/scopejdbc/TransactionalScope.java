@@ -36,16 +36,7 @@ final class TransactionalScope extends AbstractConnectionScope {
             SQLException restoreFailure = restoreConnectionState();
             SQLException closeFailure = closePhysicalConnection();
             markTerminated();
-
-            ConnectionScopeException exception =
-                    new ConnectionScopeException("Failed to initialize transactional scope", failure);
-            if (restoreFailure != null) {
-                exception.addSuppressed(restoreFailure);
-            }
-            if (closeFailure != null) {
-                exception.addSuppressed(closeFailure);
-            }
-            throw exception;
+            throw Failures.wrap("Failed to initialize transactional scope", failure, restoreFailure, closeFailure);
         }
     }
 
@@ -102,59 +93,23 @@ final class TransactionalScope extends AbstractConnectionScope {
     }
 
     @Override
-    public void close() {
-        if (state == State.TERMINATED) {
-            return;
-        }
-
-        markTerminating();
-
+    protected ConnectionScopeException performClose() {
         SQLException rollbackFailure = null;
-        SQLException restoreFailure = null;
-        SQLException closeFailure = null;
-
         try {
-            try {
-                connection.rollback();
-            } catch (SQLException e) {
-                rollbackFailure = e;
-            }
-
-            restoreFailure = restoreConnectionState();
-            closeFailure = closePhysicalConnection();
-        } finally {
-            markTerminated();
+            connection.rollback();
+        } catch (SQLException e) {
+            rollbackFailure = e;
         }
 
-        if (rollbackFailure != null || restoreFailure != null || closeFailure != null) {
-            Throwable primary = rollbackFailure != null ? rollbackFailure
-                    : restoreFailure != null ? restoreFailure
-                      : closeFailure;
+        SQLException restoreFailure = restoreConnectionState();
+        SQLException closeFailure = closePhysicalConnection();
 
-            Throwable secondary = rollbackFailure != null && primary != rollbackFailure
-                    ? rollbackFailure
-                    : restoreFailure != null && primary != restoreFailure
-                      ? restoreFailure
-                      : closeFailure != null && primary != closeFailure
-                        ? closeFailure
-                        : null;
-
-            Throwable tertiary = null;
-            if (rollbackFailure != null && rollbackFailure != primary && rollbackFailure != secondary) {
-                tertiary = rollbackFailure;
-            } else if (restoreFailure != null && restoreFailure != primary && restoreFailure != secondary) {
-                tertiary = restoreFailure;
-            } else if (closeFailure != null && closeFailure != primary && closeFailure != secondary) {
-                tertiary = closeFailure;
-            }
-
-            throw closeFailure(
-                    "Failed to close transactional scope cleanly",
-                    primary,
-                    secondary,
-                    tertiary
-            );
-        }
+        return Failures.wrap(
+                "Failed to close transactional scope cleanly",
+                rollbackFailure,
+                restoreFailure,
+                closeFailure
+        );
     }
 
     private void rollbackOnExecutionFailure(Throwable original) {

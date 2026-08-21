@@ -57,21 +57,34 @@ abstract sealed class AbstractConnectionScope implements ConnectionScope
         state = State.TERMINATED;
     }
 
-    protected final ConnectionScopeException closeFailure(
-            String message,
-            Throwable primary,
-            Throwable secondary,
-            Throwable tertiary
-    ) {
-        ConnectionScopeException exception = new ConnectionScopeException(message, primary);
-        if (secondary != null) {
-            exception.addSuppressed(secondary);
+    @Override
+    public final void close() {
+        if (state == State.TERMINATED) {
+            return;
         }
-        if (tertiary != null) {
-            exception.addSuppressed(tertiary);
+
+        markTerminating();
+
+        ConnectionScopeException failure;
+        try {
+            failure = performClose();
+        } finally {
+            markTerminated();
         }
-        return exception;
+
+        if (failure != null) {
+            throw failure;
+        }
     }
+
+    /**
+     * Performs scope-specific cleanup (rollback, connection-state restoration, physical close as
+     * applicable) and returns an aggregated failure describing anything that went wrong, or
+     * {@code null} if cleanup succeeded.
+     *
+     * @return aggregated cleanup failure, or {@code null} on success
+     */
+    protected abstract ConnectionScopeException performClose();
 
     protected final SQLException restoreConnectionState() {
         SQLException failure = null;
